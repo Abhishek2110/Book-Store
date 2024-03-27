@@ -11,8 +11,30 @@ from jwt import PyJWTError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .tasks import celery_send_mail
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename='bookstore.log')
+
+logger = logging.getLogger(__name__)
 
 class RegisterApi(APIView):
+    
+    throttle_scope = "user_register"
+    
+    """
+    This resource handles the registration of users.
+
+    Methods:
+        - POST: Register a New User.
+
+    Request Body:
+        - name: str, required. The details of the user to register(username, password, email).
+
+    Responses:
+        - 201: If the user is successfully registered. Returns a success message, status code 201, and the registered user data.
+        - 400: If there is an error during user registration. Returns an error message and status code 400.
+    """
+      
     @swagger_auto_schema(request_body=RegisterSerializer, responses={201: openapi.Response(description="User registered", examples={
                              "application/json": {'message': 'User registered', 'status': 201, 'data': {}}
                          }),
@@ -39,8 +61,23 @@ class RegisterApi(APIView):
             return Response({'message': 'User registered', 'status': 201, 
                                 'data': serializer.data}, status=201)
         except Exception as e:
+            logger.error(f"Registration failed: {str(e)}")
             return Response({'message': str(e), 'status': 400}, status=400)
-        
+       
+    """
+    This resource handles the verification of users.
+
+    Methods:
+        - GET: Verifies a New User.
+
+    Request Body:
+        - name: str, required. The unique token to verify the user.
+
+    Responses:
+        - 200: If the user is successfully verified. Returns a success message, status code 200.
+        - 400: If there is an error during user verification. Returns an error message and status code 400.
+    """
+     
     @swagger_auto_schema(manual_parameters=[
         openapi.Parameter('token', openapi.IN_QUERY, type=openapi.TYPE_STRING, required=True)
     ], responses={200: openapi.Response(description="User verified successfully", examples={
@@ -59,12 +96,30 @@ class RegisterApi(APIView):
             user.save()
             return Response({'message': 'User verified successfully', 'status': 200}, status=200)
         except PyJWTError:
+            logger.error(f"Invalid token: {str(e)}")
             return Response({'message': 'Invalid token', 'status': 400}, status=400)
         except User.DoesNotExist:
+            logger.error(f"User does not exist: {str(e)}") 
             return Response({'message': 'User does not exitst', 'status': 400}, status=400)
         
 class LoginApi(APIView):
+    
+    throttle_scope = "user_login"
 
+    """
+    This resource handles the login of users.
+
+    Methods:
+        - POST: Login of User.
+
+    Request Body:
+        - name: str, required. The details of the user to login(username, password).
+
+    Responses:
+        - 200: If the user is successfully logged in. Returns a success message, status code 200, and the unique token.
+        - 400: If there is an error during user login. Returns an error message and status code 400.
+    """
+    
     @swagger_auto_schema(request_body=LoginSerializer, 
                          responses={200: openapi.Response(description="Login successful", examples={
                              "application/json": {'message': 'Login successful', 'status': 200}
@@ -80,9 +135,27 @@ class LoginApi(APIView):
             return Response({'message': 'Login successful', 'status': 200, 'token': str(token)}, status=200)
         # User authentication failed
         except Exception as e:
+            logger.error(f"Login failed: {str(e)}")
             return Response({'message': str(e), 'status': 400}, status=400)
 
 class ResetPasswordApi(viewsets.ViewSet):
+    
+    throttle_scope = "reset_password"
+    
+    """
+    This resource handles the reset password send mail.
+
+    Methods:
+        - POST: Sends email for reset password.
+
+    Request Body:
+        - name: str, required. The email of the user to send reset password link.
+
+    Responses:
+        - 200: If the email is sent. Returns a success message, status code 200, and the unique token.
+        - 400: If there is an error during send mail. Returns an error message and status code 400.
+        - 404: If mail not found. Returns an error message email not found and status code 404.
+    """
     
     @swagger_auto_schema(request_body=EmailSerializer, 
                          responses={200: openapi.Response(description="Email Sent Successfully", examples={
@@ -102,11 +175,26 @@ class ResetPasswordApi(viewsets.ViewSet):
                 from_mail = settings.EMAIL_HOST_USER
                 recipient_list = [email]
                 celery_send_mail.delay(subject, message, from_mail, recipient_list)
-                return Response({'message': 'An Email is sent', 'status': 200}, status=200)
+                return Response({'message': 'An Email is sent', 'status': 200, 'token': str(token)}, status=200)
             return Response({'message': 'Email not found', 'status': 404}, status=404)
         except Exception as e:
+            logger.error(f"Some error occured while sending mail: {str(e)}")
             return Response({'message': str(e), 'status': 400}, status=400)
         
+    """
+    This resource handles the change password.
+
+    Methods:
+        - POST: Sends new password.
+
+    Request Body:
+        - name: str, required. The new password of the user to reset password.
+
+    Responses:
+        - 200: If the Password Updated Successfully. Returns a success message, status code 200.
+        - 400: If there is an password updation. Returns an error message and status code 400.
+    """
+    
     @swagger_auto_schema(manual_parameters=[
         openapi.Parameter('token', openapi.IN_QUERY, type=openapi.TYPE_STRING, required=True)],request_body=PasswordSerializer, 
                          responses={200: openapi.Response(description="Password Updated", examples={
@@ -126,4 +214,5 @@ class ResetPasswordApi(viewsets.ViewSet):
             user.save()
             return Response({'message': 'Password Updated Successfully', 'status': 200}, status=200)
         except Exception as e:
+            logger.error(f"Some error occured while changing the password: {str(e)}")
             return Response({'message': str(e), 'status': 400}, status=400)

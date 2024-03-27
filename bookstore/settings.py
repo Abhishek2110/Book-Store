@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
 from pathlib import Path
-# from os import environ
+from os import environ
 from dotenv import load_dotenv
 from datetime import timedelta
 
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'drf_yasg',
     'book',
+    'cart',
 ]
 
 MIDDLEWARE = [
@@ -119,7 +120,20 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+        # 'rest_framework.throttling.AnonRateThrottle',
+        # 'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user_register': environ.get('USER_REGISTER'),
+        'user_login': environ.get('USER_LOGIN'),
+        'reset_password': environ.get('RESET_PASSWORD'),
+        'book_api': environ.get('BOOK_API'),
+        'cart_api': environ.get('CART_API'),
+        'order_api': environ.get('ORDER_API')
+    }
 }
 
 # Internationalization
@@ -210,3 +224,16 @@ CELERY_TIMEZONE = os.getenv('TIME_ZONE')
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_ALWAYS_EAGER = False
+
+# Swagger Settings
+SWAGGER_SETTINGS = {
+    "DEFAULT_MODEL_RENDERING": "example",
+    "USE_SESSION_AUTH": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization"
+        }
+    }
+}

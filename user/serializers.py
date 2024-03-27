@@ -10,7 +10,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=50, required=True, write_only=True)
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password', 'first_name', 'last_name', 'date_joined')
+        fields = ('id', 'username', 'email', 'password', 'first_name', 'last_name', 'date_joined', 'is_superuser')
         extra_kwargs = {'password': {'write_only': True}}
         read_only_fields = ('date_joined', 'first_name', 'last_name',)
 
