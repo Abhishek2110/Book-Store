@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "rest_framework",
     'rest_framework_simplejwt',
     'drf_yasg',
+    'book',
+    'cart',
 ]
 
 MIDDLEWARE = [
@@ -209,3 +211,16 @@ CELERY_TIMEZONE = os.getenv('TIME_ZONE')
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_ALWAYS_EAGER = False
+
+# Swagger Settings
+SWAGGER_SETTINGS = {
+    "DEFAULT_MODEL_RENDERING": "example",
+    "USE_SESSION_AUTH": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization"
+        }
+    }
+}
